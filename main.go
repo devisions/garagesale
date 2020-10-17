@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -18,7 +18,7 @@ func main() {
 
 	srv := http.Server{
 		Addr:         "localhost:8000",
-		Handler:      http.HandlerFunc(Echo),
+		Handler:      http.HandlerFunc(ListProducts),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}
@@ -60,8 +60,30 @@ func main() {
 	}
 }
 
-// Echo just tells you about the request you made.
-func Echo(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "You asked", r.Method, r.URL.Path)
-	time.Sleep(3 * time.Second)
+// Product is something we sell.
+type Product struct {
+	Name     string `json:"name"`
+	Cost     int    `json:"cost"`
+	Quantity int    `json:"quantity"`
+}
+
+// ListProducts gives all products as a list
+func ListProducts(w http.ResponseWriter, r *http.Request) {
+
+	list := []Product{}
+	list = append(list,
+		Product{Name: "Comic Books", Cost: 75, Quantity: 50},
+		Product{Name: "McDonald's Toys", Cost: 25, Quantity: 120})
+
+	data, err := json.Marshal(list)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error: marshalling", err)
+		return
+	}
+	w.Header().Set("content-type", "application/json; charset=utf-8")
+	if _, err := w.Write([]byte(data)); err != nil {
+		log.Println("error: responding", err)
+	}
+
 }
