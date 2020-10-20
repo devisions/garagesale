@@ -3,18 +3,48 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/devisions/garagesale/schema"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 func main() {
 
 	log.Println("main > Starting up ...")
 	defer log.Println("main > Exit.")
+
+	// -----------------------------------------------------------------------
+	// Setup Dependencies
+
+	db, err := openDB()
+	if err != nil {
+		log.Fatal("Failed to talk with the db:", err)
+	}
+
+	flag.Parse()
+	switch flag.Arg(0) {
+	case "migrate":
+		if err := schema.Migrate(db); err != nil {
+			log.Fatal("Failed to apply db migrations", err)
+		}
+		log.Println("Db migration complete")
+		return
+	case "seed":
+		if err := schema.Seed(db); err != nil {
+			log.Fatal("Failed to seed data into db", err)
+		}
+		log.Println("Seed data into db complete")
+		return
+	}
 
 	srv := http.Server{
 		Addr:         "localhost:8000",
@@ -40,7 +70,7 @@ func main() {
 	select {
 
 	case err := <-srvErrs:
-		log.Fatalf("main > error: On ListenAndServe: %s", err)
+		log.Fatalf("main > error on ListenAndServe: %s", err)
 
 	case <-shutd:
 		log.Println("main > Shutting down ...")
@@ -85,5 +115,20 @@ func ListProducts(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write([]byte(data)); err != nil {
 		log.Println("error: responding", err)
 	}
+}
 
+func openDB() (*sqlx.DB, error) {
+
+	q := url.Values{}
+	q.Set("sslmode", "disable")
+	q.Set("timezone", "utc")
+
+	u := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword("postgres", "postgres"),
+		Host:     "localhost:54327",
+		Path:     "postgres",
+		RawQuery: q.Encode(),
+	}
+	return sqlx.Open("postgres", u.String())
 }
