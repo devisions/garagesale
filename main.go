@@ -46,9 +46,11 @@ func main() {
 		return
 	}
 
+	ps := ProductService{db: db}
+
 	srv := http.Server{
 		Addr:         "localhost:8000",
-		Handler:      http.HandlerFunc(ListProducts),
+		Handler:      http.HandlerFunc(ps.List),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}
@@ -92,28 +94,40 @@ func main() {
 
 // Product is something we sell.
 type Product struct {
-	Name     string `json:"name"`
-	Cost     int    `json:"cost"`
-	Quantity int    `json:"quantity"`
+	ID          string    `db:"product_id" json:"id"`
+	Name        string    `json:"name"`
+	Cost        int       `json:"cost"`
+	Quantity    int       `json:"quantity"`
+	DateCreated time.Time `db:"date_created" json:"date_created"`
+	DateUpdated time.Time `db:"date_updated" json:"date_updated"`
+}
+
+// ProductService has handler methods for dealing with Products.
+type ProductService struct {
+	db *sqlx.DB
 }
 
 // ListProducts gives all products as a list
-func ListProducts(w http.ResponseWriter, r *http.Request) {
+func (p *ProductService) List(w http.ResponseWriter, r *http.Request) {
 
 	list := []Product{}
-	list = append(list,
-		Product{Name: "Comic Books", Cost: 75, Quantity: 50},
-		Product{Name: "McDonald's Toys", Cost: 25, Quantity: 120})
+
+	const q = `SELECT product_id, name, cost, quantity, date_updated, date_created FROM products`
+	if err := p.db.Select(&list, q); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error on querying products on db", err)
+		return
+	}
 
 	data, err := json.Marshal(list)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("error: marshalling", err)
+		log.Println("error on marshalling", err)
 		return
 	}
 	w.Header().Set("content-type", "application/json; charset=utf-8")
 	if _, err := w.Write([]byte(data)); err != nil {
-		log.Println("error: responding", err)
+		log.Println("error on responding", err)
 	}
 }
 
