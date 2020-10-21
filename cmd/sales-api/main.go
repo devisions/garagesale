@@ -13,9 +13,16 @@ import (
 	"github.com/devisions/garagesale/cmd/sales-api/internal/handlers"
 	"github.com/devisions/garagesale/internal/platform/conf"
 	"github.com/devisions/garagesale/internal/platform/database"
+	"github.com/pkg/errors"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 
 	var cfg struct {
 		DB struct {
@@ -37,17 +44,17 @@ func main() {
 		if err == conf.ErrHelpWanted {
 			usage, err := conf.Usage("SALES", &cfg)
 			if err != nil {
-				log.Fatalf("error : generating config usage : %v", err)
+				return errors.Wrap(err, "generating config usage")
 			}
 			fmt.Println(usage)
-			return
+			return nil
 		}
-		log.Fatalf("error: parsing config: %s", err)
+		return errors.Wrap(err, "parsing config")
 	}
 
 	out, err := conf.String(&cfg)
 	if err != nil {
-		log.Fatalf("error : generating config for output : %v", err)
+		return errors.Wrap(err, "generating config for output")
 	}
 	log.Printf("main : Config :\n%v\n", out)
 
@@ -62,7 +69,7 @@ func main() {
 		DisableTLS: cfg.DB.DisableTLS,
 	})
 	if err != nil {
-		log.Fatal("Failed to talk with the db:", err)
+		return errors.Wrap(err, "Failed to talk with the db")
 	}
 
 	ps := handlers.Product{DB: db}
@@ -91,7 +98,7 @@ func main() {
 	select {
 
 	case err := <-srvErrs:
-		log.Fatalf("main > error on ListenAndServe: %s", err)
+		return errors.Wrap(err, "on ListenAndServe")
 
 	case <-shutd:
 		log.Println("main > Shutting down ...")
@@ -104,10 +111,11 @@ func main() {
 			log.Printf("main > error: Graceful shutdown did not complete in %v seconds: %v\n",
 				cfg.Web.ShutdownTimeout, err)
 			if err := srv.Close(); err != nil {
-				log.Fatalf("main > error: While closing the server: %s", err)
+				return errors.Wrap(err, "while closing the server")
 			}
 		}
 		log.Println("main > Graceful shutdown complete.")
 	}
 
+	return nil
 }

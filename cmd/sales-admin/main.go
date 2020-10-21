@@ -9,10 +9,16 @@ import (
 	"github.com/devisions/garagesale/internal/platform/conf"
 	"github.com/devisions/garagesale/internal/platform/database"
 	"github.com/devisions/garagesale/internal/schema"
+	"github.com/pkg/errors"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
 
+func run() error {
 	// -----------------------------------------------------------------------
 	// Configuration
 
@@ -31,12 +37,12 @@ func main() {
 		if err == conf.ErrHelpWanted {
 			usage, err := conf.Usage("SALES", &cfg)
 			if err != nil {
-				log.Fatalf("main : generating usage : %v", err)
+				return errors.Wrap(err, "generating usage")
 			}
 			fmt.Println(usage)
-			return
+			return nil
 		}
-		log.Fatalf("error: parsing config: %s", err)
+		return errors.Wrap(err, "parsing config")
 	}
 
 	// -----------------------------------------------------------------------
@@ -50,7 +56,7 @@ func main() {
 		DisableTLS: cfg.DB.DisableTLS,
 	})
 	if err != nil {
-		log.Fatal("Failed to talk with the db:", err)
+		return errors.Wrap(err, "tryting to talk with the db")
 	}
 
 	flag.Parse()
@@ -58,17 +64,15 @@ func main() {
 	switch flag.Arg(0) {
 	case "migrate":
 		if err := schema.Migrate(db); err != nil {
-			log.Fatal("Failed to apply db migrations", err)
-			os.Exit(1)
+			return errors.Wrap(err, "applying db migrations")
 		}
 		log.Println("Db migration complete")
-		return
 	case "seed":
 		if err := schema.Seed(db); err != nil {
-			log.Fatal("Failed to seed data into db", err)
-			os.Exit(1)
+			return errors.Wrap(err, "seeding data into db")
 		}
 		log.Println("Seed data into db complete")
-		return
 	}
+
+	return nil
 }
