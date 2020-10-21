@@ -75,11 +75,9 @@ func run() error {
 		return errors.Wrap(err, "Failed to talk with the db")
 	}
 
-	ps := handlers.Product{DB: db, Log: log}
-
 	srv := http.Server{
 		Addr:         cfg.Web.Address,
-		Handler:      http.HandlerFunc(ps.List),
+		Handler:      handlers.API(log, db),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 	}
