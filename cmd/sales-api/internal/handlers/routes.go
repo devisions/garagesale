@@ -16,6 +16,8 @@ func API(logger *log.Logger, db *sqlx.DB) http.Handler {
 	phs := ProductHandlers{DB: db, Log: logger}
 
 	app.Handle(http.MethodGet, "/v1/products", phs.List)
+	app.Handle(http.MethodPost, "/v1/products", phs.Create)
 	app.Handle(http.MethodGet, "/v1/products/{id}", phs.Retrieve)
+
 	return app
 }
