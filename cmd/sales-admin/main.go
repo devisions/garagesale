@@ -14,7 +14,8 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatal(err)
+		log.Printf("error: shutting down: %s", err)
+		os.Exit(1)
 	}
 }
 
@@ -66,12 +67,12 @@ func run() error {
 		if err := schema.Migrate(db); err != nil {
 			return errors.Wrap(err, "applying db migrations")
 		}
-		log.Println("Db migration complete")
+		fmt.Println("Db migration complete")
 	case "seed":
 		if err := schema.Seed(db); err != nil {
 			return errors.Wrap(err, "seeding data into db")
 		}
-		log.Println("Seed data into db complete")
+		fmt.Println("Seed data into db complete")
 	}
 
 	return nil

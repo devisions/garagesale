@@ -18,11 +18,14 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatal(err)
+		log.Printf("error: shutting down: %s", err)
+		os.Exit(1)
 	}
 }
 
 func run() error {
+
+	log := log.New(os.Stdout, "[sales] ", log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
 
 	var cfg struct {
 		DB struct {
@@ -72,7 +75,7 @@ func run() error {
 		return errors.Wrap(err, "Failed to talk with the db")
 	}
 
-	ps := handlers.Product{DB: db}
+	ps := handlers.Product{DB: db, Log: log}
 
 	srv := http.Server{
 		Addr:         cfg.Web.Address,
@@ -85,7 +88,7 @@ func run() error {
 
 	// Starting the server in the background.
 	go func() {
-		log.Printf("main > Server is listening on %s\n", srv.Addr)
+		log.Printf("Server is listening on %s\n", srv.Addr)
 		srvErrs <- srv.ListenAndServe()
 	}()
 
@@ -101,20 +104,20 @@ func run() error {
 		return errors.Wrap(err, "on ListenAndServe")
 
 	case <-shutd:
-		log.Println("main > Shutting down ...")
+		log.Println("Shutting down ...")
 
 		// Give existing requests a deadline to complete.
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.Web.ShutdownTimeout)
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("main > error: Graceful shutdown did not complete in %v seconds: %v\n",
+			log.Printf("Graceful shutdown did not complete in %v seconds: %v\n",
 				cfg.Web.ShutdownTimeout, err)
 			if err := srv.Close(); err != nil {
 				return errors.Wrap(err, "while closing the server")
 			}
 		}
-		log.Println("main > Graceful shutdown complete.")
+		log.Println("Graceful shutdown complete.")
 	}
 
 	return nil
