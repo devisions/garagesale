@@ -12,7 +12,7 @@ func Respond(w http.ResponseWriter, data interface{}, statusCode int) error {
 
 	val, err := json.Marshal(data)
 	if err != nil {
-		return errors.Wrap(err, "marshaling to json")
+		return errors.Wrapf(err, "json encoding data: %v", data)
 	}
 	w.Header().Set("content-type", "application/json; charset=utf-8")
 	w.WriteHeader(statusCode)

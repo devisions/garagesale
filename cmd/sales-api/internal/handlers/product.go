@@ -23,7 +23,7 @@ func (p *ProductHandlers) List(w http.ResponseWriter, r *http.Request) {
 	list, err := product.List(p.DB)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		p.Log.Println("error on querying products on db", err)
+		p.Log.Println("Error on querying products on db", err)
 		return
 	}
 
@@ -40,7 +40,7 @@ func (p *ProductHandlers) Retrieve(w http.ResponseWriter, r *http.Request) {
 	prod, err := product.Retrieve(p.DB, id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		p.Log.Println("error on querying a product on db", err)
+		p.Log.Println("Error on querying a product on db", err)
 		return
 	}
 
