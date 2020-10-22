@@ -3,8 +3,6 @@ package web
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
 // Decode looks for a JSON document in the request body
@@ -12,7 +10,7 @@ import (
 func Decode(r *http.Request, dest interface{}) error {
 
 	if err := json.NewDecoder(r.Body).Decode(&dest); err != nil {
-		return errors.Wrap(err, "json decoding request body")
+		return NewWebError(err, http.StatusBadRequest)
 	}
 	return nil
 }

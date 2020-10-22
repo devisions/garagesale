@@ -7,6 +7,9 @@ import (
 	"github.com/go-chi/chi"
 )
 
+// AppHandler is the signature that all application handlers will implement.
+type AppHandler func(w http.ResponseWriter, r *http.Request) error
+
 // App is the entrypoint for all web apps.
 type App struct {
 	mux *chi.Mux
@@ -22,7 +25,16 @@ func NewApp(logger *log.Logger) *App {
 }
 
 // Handle connects a method and URL pattern to a particular HTTP handler.
-func (a *App) Handle(method, pattern string, fn http.HandlerFunc) {
+func (a *App) Handle(method, pattern string, ah AppHandler) {
+
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if err := ah(w, r); err != nil {
+			a.log.Printf("ERROR: %v", err)
+			if err := RespondError(w, err); err != nil {
+				a.log.Printf("ERROR: %v", err)
+			}
+		}
+	}
 	a.mux.MethodFunc(method, pattern, fn)
 }
 
