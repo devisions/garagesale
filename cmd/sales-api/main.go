@@ -77,7 +77,7 @@ func run() error {
 
 	srv := http.Server{
 		Addr:         cfg.Web.Address,
-		Handler:      handlers.API(log, db),
+		Handler:      handlers.API(db, log),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 	}

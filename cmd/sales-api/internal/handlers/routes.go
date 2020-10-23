@@ -9,7 +9,7 @@ import (
 )
 
 // API constructs a handler that knows about all API routes.
-func API(logger *log.Logger, db *sqlx.DB) http.Handler {
+func API(db *sqlx.DB, logger *log.Logger) http.Handler {
 
 	app := web.NewApp(logger)
 
