@@ -21,7 +21,7 @@ type ProductHandlers struct {
 // ListProducts gives all products as a list
 func (p *ProductHandlers) List(w http.ResponseWriter, r *http.Request) error {
 
-	list, err := product.List(p.DB)
+	list, err := product.List(r.Context(), p.DB)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (p *ProductHandlers) List(w http.ResponseWriter, r *http.Request) error {
 func (p *ProductHandlers) Retrieve(w http.ResponseWriter, r *http.Request) error {
 
 	id := chi.URLParam(r, "id")
-	prod, err := product.Retrieve(p.DB, id)
+	prod, err := product.Retrieve(r.Context(), p.DB, id)
 	if err != nil {
 		switch err {
 		case product.ErrNotFound:
@@ -56,7 +56,7 @@ func (p *ProductHandlers) Create(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	prod, err := product.Create(p.DB, np, time.Now())
+	prod, err := product.Create(r.Context(), p.DB, np, time.Now())
 	if err != nil {
 		return err
 	}

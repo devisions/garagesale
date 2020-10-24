@@ -1,6 +1,7 @@
 package product_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -15,15 +16,17 @@ func TestProducts(t *testing.T) {
 	db, teardown := tests.NewUnit(t)
 	defer teardown()
 
+	ctx := context.Background()
+
 	np := product.NewProduct{Name: "Comic Books", Cost: 10, Quantity: 20}
 	now := time.Now().UTC()
 
-	saved, err := product.Create(db, np, now)
+	saved, err := product.Create(ctx, db, np, now)
 	if err != nil {
 		t.Fatalf("could not create product: %v", err)
 	}
 
-	fetched, err := product.Retrieve(db, saved.ID)
+	fetched, err := product.Retrieve(ctx, db, saved.ID)
 	if err != nil {
 		t.Fatalf("could not retrieve product: %v", err)
 	}
@@ -38,11 +41,13 @@ func TestProductList(t *testing.T) {
 	db, teardown := tests.NewUnit(t)
 	defer teardown()
 
+	ctx := context.Background()
+
 	if err := schema.Seed(db); err != nil {
 		t.Fatal(err)
 	}
 
-	ps, err := product.List(db)
+	ps, err := product.List(ctx, db)
 	if err != nil {
 		t.Fatalf("failed on listing products: %s", err)
 	}
