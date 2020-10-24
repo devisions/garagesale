@@ -72,7 +72,10 @@ func run() error {
 		DisableTLS: cfg.DB.DisableTLS,
 	})
 	if err != nil {
-		return errors.Wrap(err, "Failed to talk with the db")
+		return errors.Wrap(err, "setting up the db conn")
+	}
+	if err := db.Ping(); err != nil {
+		return errors.Wrap(err, "talking with db")
 	}
 
 	srv := http.Server{
