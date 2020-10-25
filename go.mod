@@ -16,5 +16,6 @@ require (
 	github.com/lib/pq v1.8.0
 	github.com/pkg/errors v0.9.1
 	google.golang.org/appengine v1.6.7 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )
