@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof" // Register the /debug/pprof handlers
 	"os"
 	"os/signal"
 	"syscall"
@@ -37,6 +38,7 @@ func run() error {
 		}
 		Web struct {
 			Address         string        `conf:"default:localhost:8000"`
+			DebugAddress    string        `conf:"default:localhost:6060"`
 			ReadTimeout     time.Duration `conf:"default:5s"`
 			WriteTimeout    time.Duration `conf:"default:5s"`
 			ShutdownTimeout time.Duration `conf:"default:5s"`
@@ -77,6 +79,19 @@ func run() error {
 	if err := db.Ping(); err != nil {
 		return errors.Wrap(err, "talking with db")
 	}
+
+	// -----------------------------------------------------------------------
+	// Start Debug Server
+
+	go func() {
+		log.Printf("Debug service listening on %s", cfg.Web.DebugAddress)
+		if err := http.ListenAndServe(cfg.Web.DebugAddress, http.DefaultServeMux); err != nil {
+			log.Printf("Debug service ended with %s", err)
+		}
+	}()
+
+	// -----------------------------------------------------------------------
+	// Start API Server
 
 	srv := http.Server{
 		Addr:         cfg.Web.Address,
