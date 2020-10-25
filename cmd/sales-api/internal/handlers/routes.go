@@ -13,11 +13,14 @@ func API(db *sqlx.DB, logger *log.Logger) http.Handler {
 
 	app := web.NewApp(logger)
 
-	phs := ProductHandlers{DB: db, Log: logger}
+	phs := ProductHandlers{db: db, log: logger}
 
 	app.Handle(http.MethodGet, "/v1/products", phs.List)
 	app.Handle(http.MethodPost, "/v1/products", phs.Create)
 	app.Handle(http.MethodGet, "/v1/products/{id}", phs.Retrieve)
+
+	app.Handle(http.MethodPost, "/v1/products/{id}/sales", phs.AddSale)
+	app.Handle(http.MethodGet, "/v1/products/{id}/sales", phs.ListSales)
 
 	return app
 }

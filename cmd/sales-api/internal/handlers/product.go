@@ -14,14 +14,14 @@ import (
 
 // ProductHandlers has handler methods for dealing with Products.
 type ProductHandlers struct {
-	DB  *sqlx.DB
-	Log *log.Logger
+	db  *sqlx.DB
+	log *log.Logger
 }
 
 // ListProducts gives all products as a list
 func (p *ProductHandlers) List(w http.ResponseWriter, r *http.Request) error {
 
-	list, err := product.List(r.Context(), p.DB)
+	list, err := product.List(r.Context(), p.db)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (p *ProductHandlers) List(w http.ResponseWriter, r *http.Request) error {
 func (p *ProductHandlers) Retrieve(w http.ResponseWriter, r *http.Request) error {
 
 	id := chi.URLParam(r, "id")
-	prod, err := product.Retrieve(r.Context(), p.DB, id)
+	prod, err := product.Retrieve(r.Context(), p.db, id)
 	if err != nil {
 		switch err {
 		case product.ErrNotFound:
@@ -56,10 +56,40 @@ func (p *ProductHandlers) Create(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	prod, err := product.Create(r.Context(), p.DB, np, time.Now())
+	prod, err := product.Create(r.Context(), p.db, np, time.Now())
 	if err != nil {
 		return err
 	}
 
 	return web.Respond(w, prod, http.StatusCreated)
+}
+
+// AddSale creates a new Sale for a particular product. It looks for a JSON
+// object in the request body. The full model is returned to the caller.
+func (p *ProductHandlers) AddSale(w http.ResponseWriter, r *http.Request) error {
+	var ns product.NewSale
+	if err := web.Decode(r, &ns); err != nil {
+		return errors.Wrap(err, "decoding new sale")
+	}
+
+	productID := chi.URLParam(r, "id")
+
+	sale, err := product.AddSale(r.Context(), p.db, ns, productID, time.Now())
+	if err != nil {
+		return errors.Wrap(err, "adding new sale")
+	}
+
+	return web.Respond(w, sale, http.StatusCreated)
+}
+
+// ListSales gets all sales for a particular product.
+func (p *ProductHandlers) ListSales(w http.ResponseWriter, r *http.Request) error {
+	id := chi.URLParam(r, "id")
+
+	list, err := product.ListSales(r.Context(), p.db, id)
+	if err != nil {
+		return errors.Wrap(err, "getting sales list")
+	}
+
+	return web.Respond(w, list, http.StatusOK)
 }

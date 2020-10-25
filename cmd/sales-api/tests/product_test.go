@@ -71,6 +71,8 @@ func (p *ProductTests) List(t *testing.T) {
 			"name":         "Comic Books",
 			"cost":         float64(50),
 			"quantity":     float64(42),
+			"revenue":      float64(350),
+			"sold":         float64(7),
 			"date_created": "2019-01-01T00:00:01.000001Z",
 			"date_updated": "2019-01-01T00:00:01.000001Z",
 		},
@@ -79,6 +81,8 @@ func (p *ProductTests) List(t *testing.T) {
 			"name":         "McDonalds Toys",
 			"cost":         float64(75),
 			"quantity":     float64(120),
+			"revenue":      float64(225),
+			"sold":         float64(3),
 			"date_created": "2019-01-01T00:00:02.000001Z",
 			"date_updated": "2019-01-01T00:00:02.000001Z",
 		},
@@ -127,6 +131,8 @@ func (p *ProductTests) ProductCRUD(t *testing.T) {
 			"name":         "product0",
 			"cost":         float64(55),
 			"quantity":     float64(6),
+			"sold":         float64(0),
+			"revenue":      float64(0),
 		}
 
 		if diff := cmp.Diff(want, created); diff != "" {

@@ -21,7 +21,13 @@ func List(ctx context.Context, db *sqlx.DB) ([]Product, error) {
 
 	list := []Product{}
 
-	const q = `SELECT product_id, name, cost, quantity, date_updated, date_created FROM products`
+	const q = `SELECT p.product_id, p.name, p.cost, p.quantity, 
+			   COALESCE(SUM(s.quantity), 0) AS sold, 
+			   COALESCE(SUM(s.paid), 0) AS revenue,
+			   p.date_updated, p.date_created
+			   FROM products AS p
+			   LEFT JOIN sales AS s ON p.product_id = s.product_id
+			   GROUP BY p.product_id`
 	if err := db.SelectContext(ctx, &list, q); err != nil {
 		return nil, err
 	}
@@ -35,8 +41,14 @@ func Retrieve(ctx context.Context, db *sqlx.DB, id string) (*Product, error) {
 		return nil, ErrInvalidID
 	}
 	var p Product
-	const q = `SELECT product_id, name, cost, quantity, date_created, date_updated
-	           FROM products WHERE product_id = $1`
+	const q = `SELECT p.product_id, p.name, p.cost, p.quantity, 
+			   COALESCE(SUM(s.quantity), 0) AS sold, 
+			   COALESCE(SUM(s.paid), 0) AS revenue,
+			   p.date_updated, p.date_created
+			   FROM products AS p
+			   LEFT JOIN sales AS s ON p.product_id = s.product_id
+			   WHERE p.product_id = $1
+			   GROUP BY p.product_id`
 	if err := db.GetContext(ctx, &p, q, id); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
