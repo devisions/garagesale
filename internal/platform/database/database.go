@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"net/url"
 
 	"github.com/jmoiron/sqlx"
@@ -34,4 +35,13 @@ func Open(cfg Config) (*sqlx.DB, error) {
 		RawQuery: q.Encode(),
 	}
 	return sqlx.Open("postgres", u.String())
+}
+
+// StatusCheck tell is talking with the database is ok.
+// It returns nil, if all ok, or an error, if otherwise.
+func StatusCheck(ctx context.Context, db *sqlx.DB) error {
+
+	const q = `SELECT true`
+	var tmp bool
+	return db.QueryRowContext(ctx, q).Scan(&tmp)
 }

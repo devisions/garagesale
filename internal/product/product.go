@@ -29,7 +29,7 @@ func List(ctx context.Context, db *sqlx.DB) ([]Product, error) {
 			   LEFT JOIN sales AS s ON p.product_id = s.product_id
 			   GROUP BY p.product_id`
 	if err := db.SelectContext(ctx, &list, q); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "selecting all products")
 	}
 	return list, nil
 }
