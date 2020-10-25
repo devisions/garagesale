@@ -25,8 +25,13 @@ func Respond(w http.ResponseWriter, data interface{}, statusCode int) error {
 // RespondError knows how to handle errors going out to the client.
 func RespondError(w http.ResponseWriter, err error) error {
 
-	if webErr, ok := err.(*WebError); ok {
-		resp := ErrorResponse{Error: webErr.Err.Error()}
+	// If the error is of type *RequestError, let's respond
+	// with the included status code and error.
+	if webErr, ok := errors.Cause(err).(*RequestError); ok {
+		resp := ErrorResponse{
+			Error:  webErr.Err.Error(),
+			Fields: webErr.Fields,
+		}
 		return Respond(w, resp, webErr.Status)
 	}
 

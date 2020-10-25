@@ -37,9 +37,9 @@ func (p *ProductHandlers) Retrieve(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		switch err {
 		case product.ErrNotFound:
-			return web.NewWebError(err, http.StatusNotFound)
+			return web.NewRequestError(err, http.StatusNotFound)
 		case product.ErrInvalidID:
-			return web.NewWebError(err, http.StatusBadRequest)
+			return web.NewRequestError(err, http.StatusBadRequest)
 		default:
 			return errors.Wrapf(err, "looking for product %q", id)
 		}

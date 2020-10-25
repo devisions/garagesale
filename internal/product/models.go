@@ -4,21 +4,21 @@ import "time"
 
 // Product is something we sell.
 type Product struct {
-	ID          string    `db:"product_id" json:"id"`
-	Name        string    `json:"name"`
-	Cost        int       `json:"cost"`
-	Quantity    int       `json:"quantity"`
-	Sold        int       `db:"sold" json:"sold"`
-	Revenue     int       `db:"revenue" json:"revenue"`
-	DateCreated time.Time `db:"date_created" json:"date_created"`
-	DateUpdated time.Time `db:"date_updated" json:"date_updated"`
+	ID          string    `db:"product_id"    json:"id"`
+	Name        string    `                   json:"name"`
+	Cost        int       `                   json:"cost"`
+	Quantity    int       `                   json:"quantity"`
+	Sold        int       `db:"sold"          json:"sold"`
+	Revenue     int       `db:"revenue"       json:"revenue"`
+	DateCreated time.Time `db:"date_created"  json:"date_created"`
+	DateUpdated time.Time `db:"date_updated"  json:"date_updated"`
 }
 
 // NewProduct is is the input request for creating a new Product.
 type NewProduct struct {
-	Name     string `json:"name"`
-	Cost     int    `json:"cost"`
-	Quantity int    `json:"quantity"`
+	Name     string `json:"name"      validate:"required"`
+	Cost     int    `json:"cost"      validate:"gte=0"`
+	Quantity int    `json:"quantity"  validate:"gte=1"`
 }
 
 // Sale represents one item of a transaction where some amount of a product was
@@ -26,11 +26,11 @@ type NewProduct struct {
 // Note that due to haggling the Paid value might not equal Quantity sold *
 // Product cost.
 type Sale struct {
-	ID          string    `db:"sale_id" json:"id"`
-	ProductID   string    `db:"product_id" json:"product_id"`
-	Quantity    int       `db:"quantity" json:"quantity"`
-	Paid        int       `db:"paid" json:"paid"`
-	DateCreated time.Time `db:"date_created" json:"date_created"`
+	ID          string    `db:"sale_id"       json:"id"`
+	ProductID   string    `db:"product_id"    json:"product_id"`
+	Quantity    int       `db:"quantity"      json:"quantity"`
+	Paid        int       `db:"paid"          json:"paid"`
+	DateCreated time.Time `db:"date_created"  json:"date_created"`
 }
 
 // NewSale is what we require from clients for recording new transactions.
