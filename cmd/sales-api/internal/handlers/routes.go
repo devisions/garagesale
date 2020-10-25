@@ -12,7 +12,7 @@ import (
 // API constructs a handler that knows about all API routes.
 func API(db *sqlx.DB, logger *log.Logger) http.Handler {
 
-	app := web.NewApp(logger, middleware.Errors(logger))
+	app := web.NewApp(logger, middleware.Errors(logger), middleware.Metrics())
 
 	hc := HealthCheck{DB: db}
 

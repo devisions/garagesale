@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	_ "expvar" // Register the /debug/vars handler.
 	"fmt"
 	"log"
 	"net/http"
-	_ "net/http/pprof" // Register the /debug/pprof handlers
+	_ "net/http/pprof" // Register the /debug/pprof handlers.
 	"os"
 	"os/signal"
 	"syscall"
