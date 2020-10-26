@@ -1,11 +1,31 @@
 package web
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi"
 )
+
+// -------------------------------------------------------
+// Request Tracking
+
+// ctxKey represents the type of value for the context key.
+type ctxKey int
+
+// KeyValues is how request values or stored/retrieved.
+const KeyValues ctxKey = 1
+
+// Values carries information about each request.
+type Values struct {
+	StatusCode int
+	Start      time.Time
+}
+
+// -------------------------------------------------------
+// App specific Web Handler
 
 // AppHandler is the signature that all application handlers will implement.
 type AppHandler func(w http.ResponseWriter, r *http.Request) error
@@ -35,6 +55,14 @@ func (a *App) Handle(method, pattern string, ah AppHandler) {
 	// Create a function that conforms to the std lib definition of a handler.
 	// This will be executed when the pattern's route is called.
 	fn := func(w http.ResponseWriter, r *http.Request) {
+
+		v := Values{
+			Start: time.Now(),
+		}
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, KeyValues, &v)
+		r = r.WithContext(ctx)
+
 		if err := ah(w, r); err != nil {
 			a.log.Printf("ERROR: Unhandled error: %v", err)
 		}

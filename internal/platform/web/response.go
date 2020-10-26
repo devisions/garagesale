@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -8,7 +9,13 @@ import (
 )
 
 // Respond marshals a value to JSON and send it to the client.
-func Respond(w http.ResponseWriter, data interface{}, statusCode int) error {
+func Respond(ctx context.Context, w http.ResponseWriter, data interface{}, statusCode int) error {
+
+	v, ok := ctx.Value(KeyValues).(*Values)
+	if !ok {
+		return errors.New("web values missing from context")
+	}
+	v.StatusCode = statusCode
 
 	if statusCode == http.StatusNoContent {
 		w.WriteHeader(statusCode)
@@ -28,7 +35,7 @@ func Respond(w http.ResponseWriter, data interface{}, statusCode int) error {
 }
 
 // RespondError knows how to handle errors going out to the client.
-func RespondError(w http.ResponseWriter, err error) error {
+func RespondError(ctx context.Context, w http.ResponseWriter, err error) error {
 
 	// If the error is of type *RequestError, let's respond
 	// with the included status code and error.
@@ -37,9 +44,9 @@ func RespondError(w http.ResponseWriter, err error) error {
 			Error:  webErr.Err.Error(),
 			Fields: webErr.Fields,
 		}
-		return Respond(w, resp, webErr.Status)
+		return Respond(ctx, w, resp, webErr.Status)
 	}
 
 	resp := ErrorResponse{Error: http.StatusText(http.StatusInternalServerError)}
-	return Respond(w, resp, http.StatusInternalServerError)
+	return Respond(ctx, w, resp, http.StatusInternalServerError)
 }

@@ -21,8 +21,8 @@ func (hc *HealthCheck) Health(w http.ResponseWriter, r *http.Request) error {
 	}
 	if err := database.StatusCheck(r.Context(), hc.DB); err != nil {
 		health.Status = "db not ready"
-		return web.Respond(w, health, http.StatusInternalServerError)
+		return web.Respond(r.Context(), w, health, http.StatusInternalServerError)
 	}
 	health.Status = "OK"
-	return web.Respond(w, health, http.StatusOK)
+	return web.Respond(r.Context(), w, health, http.StatusOK)
 }
