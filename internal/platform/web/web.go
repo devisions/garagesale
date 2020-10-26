@@ -28,7 +28,7 @@ type Values struct {
 // App specific Web Handler
 
 // AppHandler is the signature that all application handlers will implement.
-type AppHandler func(w http.ResponseWriter, r *http.Request) error
+type AppHandler func(context.Context, http.ResponseWriter, *http.Request) error
 
 // App is the entrypoint for all web apps.
 type App struct {
@@ -59,11 +59,10 @@ func (a *App) Handle(method, pattern string, ah AppHandler) {
 		v := Values{
 			Start: time.Now(),
 		}
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, KeyValues, &v)
+		ctx := context.WithValue(r.Context(), KeyValues, &v)
 		r = r.WithContext(ctx)
 
-		if err := ah(w, r); err != nil {
+		if err := ah(ctx, w, r); err != nil {
 			a.log.Printf("ERROR: Unhandled error: %v", err)
 		}
 	}

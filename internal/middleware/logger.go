@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
@@ -15,7 +16,7 @@ func Logger(log *log.Logger) web.Middleware {
 	// This is the actual middleware function to be executed.
 	f := func(before web.AppHandler) web.AppHandler {
 
-		h := func(w http.ResponseWriter, r *http.Request) error {
+		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
 			v, ok := r.Context().Value(web.KeyValues).(*web.Values)
 			if !ok {
@@ -23,7 +24,7 @@ func Logger(log *log.Logger) web.Middleware {
 			}
 
 			// Run the handler chain and catch any propagated error.
-			err := before(w, r)
+			err := before(ctx, w, r)
 
 			log.Printf("%v %s %s (%v)", v.StatusCode, r.Method, r.URL.Path, time.Since(v.Start))
 
