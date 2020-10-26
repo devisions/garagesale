@@ -1,18 +1,22 @@
 package main
 
 import (
-	"flag"
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
+	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/platform/conf"
 	"github.com/devisions/garagesale/internal/platform/database"
 	"github.com/devisions/garagesale/internal/schema"
+	"github.com/devisions/garagesale/internal/user"
 	"github.com/pkg/errors"
 )
 
 func main() {
+
 	if err := run(); err != nil {
 		log.Printf("error: shutting down: %s", err)
 		os.Exit(1)
@@ -20,12 +24,13 @@ func main() {
 }
 
 func run() error {
-	// -----------------------------------------------------------------------
+
+	// =========================================================================
 	// Configuration
 
 	var cfg struct {
 		DB struct {
-			Username   string `conf:"default:postgres"`
+			User       string `conf:"default:postgres"`
 			Password   string `conf:"default:postgres,noprint"`
 			Host       string `conf:"default:localhost:54327"`
 			Name       string `conf:"default:postgres"`
@@ -43,40 +48,108 @@ func run() error {
 			fmt.Println(usage)
 			return nil
 		}
-		return errors.Wrap(err, "parsing config")
+		return errors.Wrap(err, "error: parsing config")
 	}
 
-	// -----------------------------------------------------------------------
-	// Dependencies
-
-	db, err := database.Open(database.Config{
-		Username:   cfg.DB.Username,
+	// This is used for multiple commands below.
+	dbConfig := database.Config{
+		Username:   cfg.DB.User,
 		Password:   cfg.DB.Password,
 		Host:       cfg.DB.Host,
 		DBName:     cfg.DB.Name,
 		DisableTLS: cfg.DB.DisableTLS,
-	})
-	if err != nil {
-		return errors.Wrap(err, "setting up the db conn")
-	}
-	if err := db.Ping(); err != nil {
-		return errors.Wrap(err, "talking with db")
 	}
 
-	flag.Parse()
-
-	switch flag.Arg(0) {
+	var err error
+	switch cfg.Args.Num(0) {
 	case "migrate":
-		if err := schema.Migrate(db); err != nil {
-			return errors.Wrap(err, "applying db migrations")
-		}
-		fmt.Println("Db migration complete")
+		err = migrate(dbConfig)
 	case "seed":
-		if err := schema.Seed(db); err != nil {
-			return errors.Wrap(err, "seeding data into db")
-		}
-		fmt.Println("Seed data into db complete")
+		err = seed(dbConfig)
+	case "useradd":
+		err = useradd(dbConfig, cfg.Args.Num(1), cfg.Args.Num(2))
+	default:
+		err = errors.New("Must specify a command")
 	}
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func migrate(cfg database.Config) error {
+
+	db, err := database.Open(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := schema.Migrate(db); err != nil {
+		return err
+	}
+
+	fmt.Println("Migrations complete")
+	return nil
+}
+
+func seed(cfg database.Config) error {
+
+	db, err := database.Open(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := schema.Seed(db); err != nil {
+		return err
+	}
+
+	fmt.Println("Seed data complete")
+	return nil
+}
+
+func useradd(cfg database.Config, email, password string) error {
+
+	db, err := database.Open(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if email == "" || password == "" {
+		return errors.New("useradd command must be called with two additional arguments for email and password")
+	}
+
+	fmt.Printf("Admin user will be created with email %q and password %q\n", email, password)
+	fmt.Print("Continue? (1/0) ")
+
+	var confirm bool
+	if _, err := fmt.Scanf("%t\n", &confirm); err != nil {
+		return errors.Wrap(err, "processing response")
+	}
+
+	if !confirm {
+		fmt.Println("Canceling")
+		return nil
+	}
+
+	ctx := context.Background()
+
+	nu := user.NewUser{
+		Email:           email,
+		Password:        password,
+		PasswordConfirm: password,
+		Roles:           []string{auth.RoleAdmin, auth.RoleUser},
+	}
+
+	u, err := user.Create(ctx, db, nu, time.Now())
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("User created with id:", u.ID)
 	return nil
 }

@@ -19,6 +19,7 @@ import (
 )
 
 func main() {
+
 	if err := run(); err != nil {
 		log.Printf("error: shutting down: %s", err)
 		os.Exit(1)
