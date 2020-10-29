@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "expvar" // Register the /debug/vars handler.
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof" // Register the /debug/pprof handlers.
@@ -13,8 +14,10 @@ import (
 	"time"
 
 	"github.com/devisions/garagesale/cmd/sales-api/internal/handlers"
+	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/platform/conf"
 	"github.com/devisions/garagesale/internal/platform/database"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 )
 
@@ -31,6 +34,11 @@ func run() error {
 	log := log.New(os.Stdout, "[sales] ", log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
 
 	var cfg struct {
+		Authn struct {
+			KeyID          string `conf:"default:1"`
+			PrivateKeyFile string `conf:"default:private.pem"`
+			Algorithm      string `conf:"default:RS256"`
+		}
 		DB struct {
 			User       string `conf:"default:postgres"`
 			Password   string `conf:"default:postgres,noprint"`
@@ -82,6 +90,15 @@ func run() error {
 		return errors.Wrap(err, "talking with db")
 	}
 
+	authenticator, err := createAuth(
+		cfg.Authn.PrivateKeyFile,
+		cfg.Authn.KeyID,
+		cfg.Authn.Algorithm,
+	)
+	if err != nil {
+		return errors.Wrap(err, "constructing authenticator")
+	}
+
 	// -----------------------------------------------------------------------
 	// Start Debug Server
 
@@ -97,7 +114,7 @@ func run() error {
 
 	srv := http.Server{
 		Addr:         cfg.Web.Address,
-		Handler:      handlers.API(db, log),
+		Handler:      handlers.API(db, authenticator, log),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 	}
@@ -139,4 +156,20 @@ func run() error {
 	}
 
 	return nil
+}
+
+func createAuth(privateKeyFile, keyID, algorithm string) (*auth.Authenticator, error) {
+
+	keyContents, err := ioutil.ReadFile(privateKeyFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "reading auth private key")
+	}
+	key, err := jwt.ParseRSAPrivateKeyFromPEM(keyContents)
+	if err != nil {
+		return nil, errors.Wrap(err, "parsing auth private key")
+	}
+
+	pubKeyLookupFunc := auth.NewSimpleKeyLookupFunc(keyID, &key.PublicKey)
+
+	return auth.NewAuthenticator(key, keyID, algorithm, pubKeyLookupFunc)
 }

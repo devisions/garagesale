@@ -28,6 +28,7 @@ import (
 func TestProducts(t *testing.T) {
 
 	db, teardown := tests.NewUnit(t)
+
 	defer teardown()
 
 	if err := schema.Seed(db); err != nil {

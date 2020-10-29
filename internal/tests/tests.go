@@ -19,6 +19,7 @@ import (
 // It returns the database to use as well as a function to call at the end of
 // the test.
 func NewUnit(t *testing.T) (*sqlx.DB, func()) {
+
 	t.Helper()
 
 	c := databasetest.StartContainer(t)

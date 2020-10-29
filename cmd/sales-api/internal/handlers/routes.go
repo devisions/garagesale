@@ -5,12 +5,13 @@ import (
 	"net/http"
 
 	"github.com/devisions/garagesale/internal/middleware"
+	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/platform/web"
 	"github.com/jmoiron/sqlx"
 )
 
 // API constructs a handler that knows about all API routes.
-func API(db *sqlx.DB, logger *log.Logger) http.Handler {
+func API(db *sqlx.DB, authenticator *auth.Authenticator, logger *log.Logger) http.Handler {
 
 	app := web.NewApp(logger,
 		middleware.Logger(logger), middleware.Errors(logger), middleware.Metrics(),
@@ -21,6 +22,10 @@ func API(db *sqlx.DB, logger *log.Logger) http.Handler {
 	app.Handle(http.MethodGet, "/v1/health", hc.Health)
 
 	phs := ProductHandlers{db: db, log: logger}
+
+	uhs := UserHandlers{db: db, authenticator: authenticator}
+
+	app.Handle(http.MethodGet, "/v1/users/token", uhs.Token)
 
 	app.Handle(http.MethodGet, "/v1/products", phs.List)
 	app.Handle(http.MethodPost, "/v1/products", phs.Create)

@@ -4,11 +4,19 @@ This is my practice project, while covering the nice Ardanlabs' Ultimate Service
 
 <br/>
 
+### Setup
+
+Run `./run-admin keygen private.pem` to generate the `private.pem` file that will store the private key used for signing the JWT tokens returned as a result of a successful user authentication (see `/v1/users/token` operation for details).
+
+<br/>
+
 ### Tests
 
 The following tests are included:
 - Business Logic tests, triggered using `go test -v ./internal/product`
 - API Tests, triggered using `go test -v ./cmd/sales-api/tests`
+
+<br/>
 
 ### Runtime Insights
 
