@@ -3,10 +3,8 @@ package tests
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
@@ -14,7 +12,6 @@ import (
 	// make the comparison process easier using the go-cmp library.
 
 	"github.com/devisions/garagesale/cmd/sales-api/internal/handlers"
-	"github.com/devisions/garagesale/internal/schema"
 	"github.com/devisions/garagesale/internal/tests"
 	"github.com/google/go-cmp/cmp"
 )
@@ -27,19 +24,13 @@ import (
 // should be its own Test* function.
 func TestProducts(t *testing.T) {
 
-	db, teardown := tests.NewUnit(t)
+	test := tests.New(t)
+	defer test.Teardown()
 
-	defer teardown()
-
-	if err := schema.Seed(db); err != nil {
-		t.Fatal(err)
-	}
-
-	log := log.New(os.Stderr, "TEST : ", log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-
-	tests := ProductTests{app: handlers.API(db, log)}
+	tests := ProductTests{app: handlers.API(test.DB, test.Authenticator, test.Log)}
 
 	t.Run("List", tests.List)
+	t.Run("CreateRequiresFields", tests.CreateRequiresFields)
 	t.Run("ProductCRUD", tests.ProductCRUD)
 }
 
@@ -91,6 +82,20 @@ func (p *ProductTests) List(t *testing.T) {
 
 	if diff := cmp.Diff(want, list); diff != "" {
 		t.Fatalf("Response did not match expected. Diff:\n%s", diff)
+	}
+}
+
+func (p *ProductTests) CreateRequiresFields(t *testing.T) {
+	body := strings.NewReader(`{}`)
+	req := httptest.NewRequest("POST", "/v1/products", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp := httptest.NewRecorder()
+
+	p.app.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("getting: expected status code %v, got %v", http.StatusBadRequest, resp.Code)
 	}
 }
 
