@@ -6,6 +6,10 @@ This is my practice project, while covering the nice Ardanlabs' Ultimate Service
 
 ### Setup
 
+Run `./run-admin.sh migrate` to run the database migration, meaning populating the application's database objects.
+
+Optionally, run `./run-admin.sh seed` to feed in some initial/testing data to play with.
+
 Run `./run-admin keygen private.pem` to generate the `private.pem` file that will store the private key used for signing the JWT tokens returned as a result of a successful user authentication (see `/v1/users/token` operation for details).
 
 <br/>
