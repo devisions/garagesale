@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/product"
 	"github.com/devisions/garagesale/internal/schema"
 	"github.com/devisions/garagesale/internal/tests"
@@ -21,7 +22,13 @@ func TestProducts(t *testing.T) {
 	np := product.NewProduct{Name: "Comic Books", Cost: 10, Quantity: 20}
 	now := time.Now().UTC()
 
-	saved, err := product.Create(ctx, db, np, now)
+	claims := auth.NewClaims(
+		"718ffbea-f4a1-4667-8ae3-b349da52675e", // A random UUID.
+		[]string{auth.RoleAdmin, auth.RoleUser},
+		now, time.Hour,
+	)
+
+	saved, err := product.Create(ctx, db, claims, np, now)
 	if err != nil {
 		t.Fatalf("could not create product: %v", err)
 	}
