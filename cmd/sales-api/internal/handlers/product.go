@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/platform/web"
 	"github.com/devisions/garagesale/internal/product"
 	"github.com/go-chi/chi"
@@ -52,12 +53,16 @@ func (p *ProductHandlers) Retrieve(ctx context.Context, w http.ResponseWriter, r
 // Create decodes a JSON from the POST request and create a new Product.
 func (p *ProductHandlers) Create(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
+	claims, ok := ctx.Value(auth.Key).(auth.Claims)
+	if !ok {
+		return errors.New("auth claims not in context")
+	}
 	var np product.NewProduct
 	if err := web.Decode(r, &np); err != nil {
 		return err
 	}
 
-	prod, err := product.Create(ctx, p.db, np, time.Now())
+	prod, err := product.Create(ctx, p.db, claims, np, time.Now())
 	if err != nil {
 		return err
 	}
@@ -69,6 +74,11 @@ func (p *ProductHandlers) Create(ctx context.Context, w http.ResponseWriter, r *
 // of the product is part of the request URL.
 func (p *ProductHandlers) Update(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
+	claims, ok := ctx.Value(auth.Key).(auth.Claims)
+	if !ok {
+		return errors.New("auth claims not in context")
+	}
+
 	id := chi.URLParam(r, "id")
 
 	var update product.UpdateProduct
@@ -76,12 +86,14 @@ func (p *ProductHandlers) Update(ctx context.Context, w http.ResponseWriter, r *
 		return errors.Wrap(err, "decoding product update")
 	}
 
-	if err := product.Update(ctx, p.db, id, update, time.Now()); err != nil {
+	if err := product.Update(ctx, p.db, claims, id, update, time.Now()); err != nil {
 		switch err {
 		case product.ErrNotFound:
 			return web.NewRequestError(err, http.StatusNotFound)
 		case product.ErrInvalidID:
 			return web.NewRequestError(err, http.StatusBadRequest)
+		case product.ErrForbidden:
+			return web.NewRequestError(err, http.StatusForbidden)
 		default:
 			return errors.Wrapf(err, "updating product %q", id)
 		}

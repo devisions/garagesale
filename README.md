@@ -22,6 +22,21 @@ The following tests are included:
 
 <br/>
 
+### Admin
+
+The administrative features are accessible using `./run-admin.sh` script.<br/>
+Besides the aforementioned (in Setup section above) database migration and seed capabilities, plus generation of the private key store, users can also be added using `useradd` command. Example:
+
+```shell
+$ ./run-admin.sh useradd joe@mail.com joe
+Admin user will be created with email "joe@mail.com" and password "joe"
+Continue? (1/0) 1
+User created with id: c054c42e-bd6a-4236-a7d5-9395d76b4eff
+$ 
+```
+
+<br/>
+
 ### Runtime Insights
 
 #### Profiling
