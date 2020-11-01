@@ -47,9 +47,12 @@ func NewApp(logger *log.Logger, mw ...Middleware) *App {
 }
 
 // Handle connects a method and URL pattern to a particular HTTP handler.
-func (a *App) Handle(method, pattern string, ah AppHandler) {
+func (a *App) Handle(method, pattern string, ah AppHandler, mw ...Middleware) {
 
-	// Wrapping the app middlewares around this handler.
+	// First, wrap handler specific middleware around this app handler.
+	ah = wrapMiddlewares(mw, ah)
+
+	// Next, wrap the application's general middlewares around this app handler.
 	ah = wrapMiddlewares(a.mws, ah)
 
 	// Create a function that conforms to the std lib definition of a handler.
