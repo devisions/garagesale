@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"go.opencensus.io/trace"
 	"log"
 	"net/http"
 	"time"
@@ -59,10 +60,12 @@ func (a *App) Handle(method, pattern string, ah AppHandler, mw ...Middleware) {
 	// This will be executed when the pattern's route is called.
 	fn := func(w http.ResponseWriter, r *http.Request) {
 
-		v := Values{
-			Start: time.Now(),
-		}
-		ctx := context.WithValue(r.Context(), KeyValues, &v)
+		ctx, span := trace.StartSpan(r.Context(), "internal.platform.web")
+		defer span.End()
+
+		v := Values{Start: time.Now()}
+		ctx = context.WithValue(ctx, KeyValues, &v)
+
 		r = r.WithContext(ctx)
 
 		if err := ah(ctx, w, r); err != nil {

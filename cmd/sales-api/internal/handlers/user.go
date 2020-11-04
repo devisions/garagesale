@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"go.opencensus.io/trace"
 	"net/http"
 
 	"github.com/devisions/garagesale/internal/platform/auth"
@@ -21,6 +22,9 @@ type UserHandlers struct {
 // an email and password for the request using HTTP Basic Auth. The user will
 // be identified by email and authenticated by their password.
 func (u *UserHandlers) Token(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	ctx, span := trace.StartSpan(r.Context(), "handlers.Users.Token")
+	defer span.End()
 
 	v, ok := ctx.Value(web.KeyValues).(*web.Values)
 	if !ok {

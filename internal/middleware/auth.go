@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"go.opencensus.io/trace"
 	"net/http"
 	"strings"
 
@@ -25,6 +26,10 @@ func Authenticate(authenticator *auth.Authenticator) web.Middleware {
 
 		// Wrap this handler around the next one provided.
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.Authenticate")
+			defer span.End()
+
 			// Parse the authorization header. Expected header is of
 			// the format `Bearer <token>`.
 			parts := strings.Split(r.Header.Get("Authorization"), " ")
@@ -58,6 +63,9 @@ func HasRole(roles ...string) web.Middleware {
 	f := func(after web.AppHandler) web.AppHandler {
 
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.HasRole")
+			defer span.End()
 
 			claims, ok := ctx.Value(auth.Key).(auth.Claims)
 			if !ok {

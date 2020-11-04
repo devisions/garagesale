@@ -2,23 +2,28 @@ package main
 
 import (
 	"context"
-	_ "expvar" // Register the /debug/vars handler.
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	_ "net/http/pprof" // Register the /debug/pprof handlers.
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	_ "expvar"         // Register the /debug/vars handler.
+	_ "net/http/pprof" // Register the /debug/pprof handlers.
+
+	"contrib.go.opencensus.io/exporter/zipkin"
 	"github.com/devisions/garagesale/cmd/sales-api/internal/handlers"
 	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/platform/conf"
 	"github.com/devisions/garagesale/internal/platform/database"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
+	openzipkin "github.com/openzipkin/zipkin-go"
+	zipkinHTTP "github.com/openzipkin/zipkin-go/reporter/http"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
 )
 
 func main() {
@@ -52,6 +57,11 @@ func run() error {
 			ReadTimeout     time.Duration `conf:"default:5s"`
 			WriteTimeout    time.Duration `conf:"default:5s"`
 			ShutdownTimeout time.Duration `conf:"default:5s"`
+		}
+		Trace struct {
+			URL         string  `conf:"default:http://localhost:9411/api/v2/spans"`
+			Service     string  `conf:"default:sales-api"`
+			Probability float64 `conf:"default:1"`
 		}
 	}
 
@@ -89,6 +99,10 @@ func run() error {
 	if err := db.Ping(); err != nil {
 		return errors.Wrap(err, "talking with db")
 	}
+	defer db.Close()
+
+	// -----------------------------------------------------------------------
+	// Authentication Support
 
 	authenticator, err := createAuth(
 		cfg.Authn.PrivateKeyFile,
@@ -98,6 +112,20 @@ func run() error {
 	if err != nil {
 		return errors.Wrap(err, "constructing authenticator")
 	}
+
+	// -----------------------------------------------------------------------
+	// Start Tracing Support
+
+	closer, err := registerTracer(
+		cfg.Trace.Service,
+		cfg.Web.Address,
+		cfg.Trace.URL,
+		cfg.Trace.Probability,
+	)
+	if err != nil {
+		return err
+	}
+	defer closer()
 
 	// -----------------------------------------------------------------------
 	// Start Debug Server
@@ -172,4 +200,20 @@ func createAuth(privateKeyFile, keyID, algorithm string) (*auth.Authenticator, e
 	pubKeyLookupFunc := auth.NewSimpleKeyLookupFunc(keyID, &key.PublicKey)
 
 	return auth.NewAuthenticator(key, keyID, algorithm, pubKeyLookupFunc)
+}
+
+func registerTracer(service, httpAddr, traceURL string, probability float64) (func() error, error) {
+
+	localEndpoint, err := openzipkin.NewEndpoint(service, httpAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating the local zipkinEndpoint")
+	}
+	reporter := zipkinHTTP.NewReporter(traceURL)
+
+	trace.RegisterExporter(zipkin.NewExporter(reporter, localEndpoint))
+	trace.ApplyConfig(trace.Config{
+		DefaultSampler: trace.ProbabilitySampler(probability),
+	})
+
+	return reporter.Close, nil
 }

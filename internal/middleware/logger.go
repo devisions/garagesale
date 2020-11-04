@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"go.opencensus.io/trace"
 	"log"
 	"net/http"
 	"time"
@@ -17,6 +18,9 @@ func Logger(log *log.Logger) web.Middleware {
 	f := func(before web.AppHandler) web.AppHandler {
 
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.Logger")
+			defer span.End()
 
 			v, ok := r.Context().Value(web.KeyValues).(*web.Values)
 			if !ok {

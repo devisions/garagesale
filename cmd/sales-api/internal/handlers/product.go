@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"go.opencensus.io/trace"
 	"log"
 	"net/http"
 	"time"
@@ -22,6 +23,9 @@ type ProductHandlers struct {
 
 // ListProducts gives all products as a list
 func (p *ProductHandlers) List(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	ctx, span := trace.StartSpan(r.Context(), "handlers.Product.List")
+	defer span.End()
 
 	list, err := product.List(ctx, p.db)
 	if err != nil {

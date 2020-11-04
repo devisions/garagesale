@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"expvar"
+	"go.opencensus.io/trace"
 	"net/http"
 	"runtime"
 
@@ -28,6 +29,9 @@ func Metrics() web.Middleware {
 
 		// Wrap this handler around the next one provided.
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.Metrics")
+			defer span.End()
 
 			err := before(ctx, w, r)
 
