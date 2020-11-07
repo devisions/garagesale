@@ -3,15 +3,16 @@ package middleware
 import (
 	"context"
 	"errors"
-	"go.opencensus.io/trace"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/devisions/garagesale/internal/platform/web"
+	"go.opencensus.io/trace"
 )
 
-// Logger will log a line for every request.
+// Logger writes some information about the request to the logs in the
+// format: TraceID : (200) GET /foo -> IP ADDR (latency)
 func Logger(log *log.Logger) web.Middleware {
 
 	// This is the actual middleware function to be executed.
@@ -30,7 +31,11 @@ func Logger(log *log.Logger) web.Middleware {
 			// Run the handler chain and catch any propagated error.
 			err := before(ctx, w, r)
 
-			log.Printf("%v %s %s (%v)", v.StatusCode, r.Method, r.URL.Path, time.Since(v.Start))
+			log.Printf("%s : (%d) : %s %s -> %s (%s)",
+				v.TraceID, v.StatusCode,
+				r.Method, r.URL.Path,
+				r.RemoteAddr, time.Since(v.Start),
+			)
 
 			// Return the (possible) error to be handled further up the chain.
 			return err

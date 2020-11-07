@@ -2,12 +2,14 @@ package web
 
 import (
 	"context"
-	"go.opencensus.io/trace"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi"
+	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/plugin/ochttp/propagation/tracecontext"
+	"go.opencensus.io/trace"
 )
 
 // -------------------------------------------------------
@@ -23,6 +25,7 @@ const KeyValues ctxKey = 1
 type Values struct {
 	StatusCode int
 	Start      time.Time
+	TraceID    string
 }
 
 // -------------------------------------------------------
@@ -36,15 +39,27 @@ type App struct {
 	mux *chi.Mux
 	log *log.Logger
 	mws []Middleware
+	och *ochttp.Handler
 }
 
 // NewApp knows how to construct the internal state for an App.
 func NewApp(logger *log.Logger, mw ...Middleware) *App {
-	return &App{
+
+	app := App{
 		mux: chi.NewRouter(),
 		log: logger,
 		mws: mw,
 	}
+	// Create an OpenCensus HTTP Handler which wraps the router. This will start
+	// the initial span and annotate it with information about the request/response.
+	// Configured to use W3C TraceContext standard to set the remote parent
+	// if a client request includes the appropriate headers.
+	// (see https://w3c.github.com/trace-context)
+	app.och = &ochttp.Handler{
+		Handler:     app.mux,
+		Propagation: &tracecontext.HTTPFormat{},
+	}
+	return &app
 }
 
 // Handle connects a method and URL pattern to a particular HTTP handler.
@@ -63,7 +78,7 @@ func (a *App) Handle(method, pattern string, ah AppHandler, mw ...Middleware) {
 		ctx, span := trace.StartSpan(r.Context(), "internal.platform.web")
 		defer span.End()
 
-		v := Values{Start: time.Now()}
+		v := Values{Start: time.Now(), TraceID: span.SpanContext().TraceID.String()}
 		ctx = context.WithValue(ctx, KeyValues, &v)
 
 		r = r.WithContext(ctx)
@@ -76,5 +91,6 @@ func (a *App) Handle(method, pattern string, ah AppHandler, mw ...Middleware) {
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	a.mux.ServeHTTP(w, r)
+
+	a.och.ServeHTTP(w, r)
 }
