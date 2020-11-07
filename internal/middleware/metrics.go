@@ -3,11 +3,11 @@ package middleware
 import (
 	"context"
 	"expvar"
-	"go.opencensus.io/trace"
 	"net/http"
 	"runtime"
 
 	"github.com/devisions/garagesale/internal/platform/web"
+	"go.opencensus.io/trace"
 )
 
 // m contains the global program counters for the application.
@@ -30,7 +30,7 @@ func Metrics() web.Middleware {
 		// Wrap this handler around the next one provided.
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
-			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.Metrics")
+			ctx, span := trace.StartSpan(ctx, "internal.middleware.Metrics")
 			defer span.End()
 
 			err := before(ctx, w, r)

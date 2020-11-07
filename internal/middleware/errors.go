@@ -2,24 +2,24 @@ package middleware
 
 import (
 	"context"
-	"go.opencensus.io/trace"
 	"log"
 	"net/http"
 
 	"github.com/devisions/garagesale/internal/platform/web"
+	"go.opencensus.io/trace"
 )
 
-// Errors handles errors coming out of the call chain. It detects normal
+// ErrorHandler handles errors coming out of the call chain. It detects normal
 // application errors which are used to respond to the client in a uniform way.
 // Unexpected errors (status >= 500) are logged.
-func Errors(log *log.Logger) web.Middleware {
+func ErrorHandler(log *log.Logger) web.Middleware {
 
 	// This is the actual middleware function to be executed.
 	f := func(before web.AppHandler) web.AppHandler {
 
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
-			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.Errors")
+			ctx, span := trace.StartSpan(ctx, "internal.middleware.ErrorHandler")
 			defer span.End()
 
 			// Run the handler chain and catch any propagated error.

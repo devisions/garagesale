@@ -15,7 +15,7 @@ type Product struct {
 	DateUpdated time.Time `db:"date_updated"  json:"date_updated"`
 }
 
-// NewProduct is is the input request for creating a new Product.
+// NewProduct is the input request for creating a new Product.
 type NewProduct struct {
 	Name     string `json:"name"      validate:"required"`
 	Cost     int    `json:"cost"      validate:"gte=0"`

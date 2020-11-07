@@ -11,16 +11,16 @@ import (
 	"go.opencensus.io/trace"
 )
 
-// Logger writes some information about the request to the logs in the
+// RequestLogger writes some information about the request to the logs in the
 // format: TraceID : (200) GET /foo -> IP ADDR (latency)
-func Logger(log *log.Logger) web.Middleware {
+func RequestLogger(log *log.Logger) web.Middleware {
 
 	// This is the actual middleware function to be executed.
 	f := func(before web.AppHandler) web.AppHandler {
 
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
-			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.Logger")
+			ctx, span := trace.StartSpan(ctx, "internal.middleware.RequestLogger")
 			defer span.End()
 
 			v, ok := r.Context().Value(web.KeyValues).(*web.Values)
@@ -31,7 +31,7 @@ func Logger(log *log.Logger) web.Middleware {
 			// Run the handler chain and catch any propagated error.
 			err := before(ctx, w, r)
 
-			log.Printf("%s : (%d) : %s %s -> %s (%s)",
+			log.Printf("%s | %d | %s %s -> %s (%s)",
 				v.TraceID, v.StatusCode,
 				r.Method, r.URL.Path,
 				r.RemoteAddr, time.Since(v.Start),

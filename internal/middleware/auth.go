@@ -2,13 +2,13 @@ package middleware
 
 import (
 	"context"
-	"go.opencensus.io/trace"
 	"net/http"
 	"strings"
 
 	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/platform/web"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
 )
 
 // ErrForbidden is returned when an authenticated user does not have a
@@ -27,7 +27,7 @@ func Authenticate(authenticator *auth.Authenticator) web.Middleware {
 		// Wrap this handler around the next one provided.
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
-			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.Authenticate")
+			ctx, span := trace.StartSpan(ctx, "internal.middleware.Authenticate")
 			defer span.End()
 
 			// Parse the authorization header. Expected header is of
@@ -64,7 +64,7 @@ func HasRole(roles ...string) web.Middleware {
 
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
-			ctx, span := trace.StartSpan(r.Context(), "internal.middleware.HasRole")
+			ctx, span := trace.StartSpan(ctx, "internal.middleware.HasRole")
 			defer span.End()
 
 			claims, ok := ctx.Value(auth.Key).(auth.Claims)

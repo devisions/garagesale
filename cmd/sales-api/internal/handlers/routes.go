@@ -14,7 +14,9 @@ import (
 func API(db *sqlx.DB, authenticator *auth.Authenticator, logger *log.Logger) http.Handler {
 
 	app := web.NewApp(logger,
-		middleware.Logger(logger), middleware.Errors(logger), middleware.Metrics(),
+		middleware.RequestLogger(logger),
+		middleware.ErrorHandler(logger),
+		middleware.Metrics(),
 	)
 
 	hc := HealthCheck{DB: db}
