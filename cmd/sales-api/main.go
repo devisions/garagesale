@@ -11,10 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	_ "expvar"         // Register the /debug/vars handler.
-	_ "net/http/pprof" // Register the /debug/pprof handlers.
-
 	"contrib.go.opencensus.io/exporter/zipkin"
+	_ "expvar" // Register the /debug/vars handler.
 	"github.com/devisions/garagesale/cmd/sales-api/internal/handlers"
 	"github.com/devisions/garagesale/internal/platform/auth"
 	"github.com/devisions/garagesale/internal/platform/conf"
@@ -24,6 +22,7 @@ import (
 	zipkinHTTP "github.com/openzipkin/zipkin-go/reporter/http"
 	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
+	_ "net/http/pprof" // Register the /debug/pprof handlers.
 )
 
 func main() {
@@ -140,9 +139,14 @@ func run() error {
 	// -----------------------------------------------------------------------
 	// Start API Server
 
+	// Shutdown channel receives an interrupt or terminate signal from the OS.
+	// It is a buffered channel since the signal package requires it.
+	shutd := make(chan os.Signal, 1)
+	signal.Notify(shutd, os.Interrupt, syscall.SIGTERM)
+
 	srv := http.Server{
 		Addr:         cfg.Web.Address,
-		Handler:      handlers.API(db, authenticator, log),
+		Handler:      handlers.API(db, authenticator, log, shutd),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 	}
@@ -155,19 +159,14 @@ func run() error {
 		srvErrs <- srv.ListenAndServe()
 	}()
 
-	// Shutdown channel receives an interrupt or terminate signal from the OS.
-	// It is a buffered channel since the signal package requires it.
-	shutd := make(chan os.Signal, 1)
-	signal.Notify(shutd, os.Interrupt, syscall.SIGTERM)
-
 	// Everything has started. Just waiting for a shutdown signal.
 	select {
 
 	case err := <-srvErrs:
 		return errors.Wrap(err, "on ListenAndServe")
 
-	case <-shutd:
-		log.Println("Shutting down ...")
+	case sig := <-shutd:
+		log.Printf("Received %v signal. Shutting down ...", sig)
 
 		// Give existing requests a deadline to complete.
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.Web.ShutdownTimeout)
@@ -180,6 +179,10 @@ func run() error {
 				return errors.Wrap(err, "while closing the server")
 			}
 		}
+		if sig == syscall.SIGSTOP {
+			return errors.New("integrity error detected, asking for self shutdown")
+		}
+
 		log.Println("Graceful shutdown complete.")
 	}
 

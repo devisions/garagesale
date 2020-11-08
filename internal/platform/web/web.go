@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -36,19 +38,21 @@ type AppHandler func(context.Context, http.ResponseWriter, *http.Request) error
 
 // App is the entrypoint for all web apps.
 type App struct {
-	mux *chi.Mux
-	log *log.Logger
-	mws []Middleware
-	och *ochttp.Handler
+	mux      *chi.Mux
+	log      *log.Logger
+	mws      []Middleware
+	och      *ochttp.Handler
+	shutdown chan os.Signal
 }
 
 // NewApp knows how to construct the internal state for an App.
-func NewApp(logger *log.Logger, mw ...Middleware) *App {
+func NewApp(logger *log.Logger, shutdown chan os.Signal, mw ...Middleware) *App {
 
 	app := App{
-		mux: chi.NewRouter(),
-		log: logger,
-		mws: mw,
+		mux:      chi.NewRouter(),
+		log:      logger,
+		mws:      mw,
+		shutdown: shutdown,
 	}
 	// Create an OpenCensus HTTP Handler which wraps the router. This will start
 	// the initial span and annotate it with information about the request/response.
@@ -84,7 +88,10 @@ func (a *App) Handle(method, pattern string, ah AppHandler, mw ...Middleware) {
 		r = r.WithContext(ctx)
 
 		if err := ah(ctx, w, r); err != nil {
-			a.log.Printf("ERROR: Unhandled error: %v", err)
+			a.log.Printf("ERROR: Unhandled: %v", err)
+			if IsShutdown(err) {
+				a.SignalShutdown()
+			}
 		}
 	}
 	a.mux.MethodFunc(method, pattern, fn)
@@ -93,4 +100,11 @@ func (a *App) Handle(method, pattern string, ah AppHandler, mw ...Middleware) {
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	a.och.ServeHTTP(w, r)
+}
+
+// SignalShutdown is used for gracefully shutdown the app
+// when an integrity issue is identified.
+func (a *App) SignalShutdown() {
+	a.log.Println("A handler returned an integrity issue error. Shutting down now ...")
+	a.shutdown <- syscall.SIGSTOP
 }

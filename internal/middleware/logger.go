@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -25,7 +24,7 @@ func RequestLogger(log *log.Logger) web.Middleware {
 
 			v, ok := r.Context().Value(web.KeyValues).(*web.Values)
 			if !ok {
-				return errors.New("web values missing from context")
+				return web.NewShutdownError("web values missing from context")
 			}
 
 			// Run the handler chain and catch any propagated error.

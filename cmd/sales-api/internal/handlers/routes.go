@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/devisions/garagesale/internal/middleware"
 	"github.com/devisions/garagesale/internal/platform/auth"
@@ -11,9 +12,9 @@ import (
 )
 
 // API constructs a handler that knows about all API routes.
-func API(db *sqlx.DB, authenticator *auth.Authenticator, logger *log.Logger) http.Handler {
+func API(db *sqlx.DB, authenticator *auth.Authenticator, logger *log.Logger, shutdown chan os.Signal) http.Handler {
 
-	app := web.NewApp(logger,
+	app := web.NewApp(logger, shutdown,
 		middleware.RequestLogger(logger),
 		middleware.ErrorHandler(logger),
 		middleware.Metrics(),

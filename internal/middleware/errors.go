@@ -22,12 +22,25 @@ func ErrorHandler(log *log.Logger) web.Middleware {
 			ctx, span := trace.StartSpan(ctx, "internal.middleware.ErrorHandler")
 			defer span.End()
 
+			v, ok := ctx.Value(web.KeyValues).(*web.Values)
+			if !ok {
+				return web.NewShutdownError("web values missing from context")
+			}
+
 			// Run the handler chain and catch any propagated error.
 			if err := before(ctx, w, r); err != nil {
+
 				// Log the error.
-				log.Printf("ERROR: %+v", err)
+				log.Printf("%s | ERROR: %+v", v.TraceID, err)
+
 				// Respond to the error.
 				if err := web.RespondError(ctx, w, err); err != nil {
+					return err
+				}
+
+				// If a shutdown error was received, this is also returned
+				// (is bubbled up).
+				if web.IsShutdown(err) {
 					return err
 				}
 			}

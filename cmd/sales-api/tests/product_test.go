@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
 	// NOTE: Models should not be imported, we want to test the exact JSON. We
 	// make the comparison process easier using the go-cmp library.
-
 	"github.com/devisions/garagesale/cmd/sales-api/internal/handlers"
 	"github.com/devisions/garagesale/internal/tests"
 	"github.com/google/go-cmp/cmp"
@@ -27,7 +27,10 @@ func TestProducts(t *testing.T) {
 	test := tests.New(t)
 	defer test.Teardown()
 
-	tests := ProductTests{app: handlers.API(test.DB, test.Authenticator, test.Log)}
+	shutdown := make(chan os.Signal, 1)
+	tests := ProductTests{
+		app: handlers.API(test.DB, test.Authenticator, test.Log, shutdown),
+	}
 
 	t.Run("List", tests.List)
 	t.Run("CreateRequiresFields", tests.CreateRequiresFields)
@@ -86,6 +89,7 @@ func (p *ProductTests) List(t *testing.T) {
 }
 
 func (p *ProductTests) CreateRequiresFields(t *testing.T) {
+
 	body := strings.NewReader(`{}`)
 	req := httptest.NewRequest("POST", "/v1/products", body)
 	req.Header.Set("Content-Type", "application/json")
