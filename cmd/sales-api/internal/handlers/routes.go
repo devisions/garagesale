@@ -17,6 +17,7 @@ func API(db *sqlx.DB, authenticator *auth.Authenticator, logger *log.Logger) htt
 		middleware.RequestLogger(logger),
 		middleware.ErrorHandler(logger),
 		middleware.Metrics(),
+		middleware.Panics(),
 	)
 
 	hc := HealthCheck{DB: db}
