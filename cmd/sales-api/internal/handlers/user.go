@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"go.opencensus.io/trace"
 	"net/http"
 
 	"github.com/devisions/garagesale/internal/platform/auth"
@@ -10,6 +9,7 @@ import (
 	"github.com/devisions/garagesale/internal/user"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
 )
 
 // UserHandlers holds handlers for dealing with user.
@@ -23,7 +23,7 @@ type UserHandlers struct {
 // be identified by email and authenticated by their password.
 func (u *UserHandlers) Token(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
-	ctx, span := trace.StartSpan(r.Context(), "handlers.Users.Token")
+	ctx, span := trace.StartSpan(ctx, "handlers.Users.Token")
 	defer span.End()
 
 	v, ok := ctx.Value(web.KeyValues).(*web.Values)
